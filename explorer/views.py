@@ -132,7 +132,7 @@ class DownloadFromSqlView(PermissionRequiredMixin, View):
 
     def post(self, request, *args, **kwargs):
         sql = request.POST.get('sql')
-        connection = request.POST.get('connection')
+        connection = request.POST.get('connection', '')
         query = Query(sql=sql, connection=connection, title='')
         ql = query.log(request.user)
         query.title = 'Playground - %s' % ql.id
@@ -169,7 +169,7 @@ class SchemaView(PermissionRequiredMixin, View):
         return super(SchemaView, self).dispatch(*args, **kwargs)
 
     def get(self, request, *args, **kwargs):
-        connection = kwargs.get('connection')
+        connection = kwargs.get('connection', '')
         if connection not in connections:
             raise Http404
         schema = schema_info(connection)
@@ -316,7 +316,8 @@ class PlayQueryView(PermissionRequiredMixin, ExplorerContextMixin, View):
 
         if url_get_log_id(request):
             log = get_object_or_404(QueryLog, pk=url_get_log_id(request))
-            query = Query(sql=log.sql, title="Playground", connection=log.connection)
+            c = log.connection or ''
+            query = Query(sql=log.sql, title="Playground", connection=c)
             return self.render_with_sql(request, query)
 
         return self.render()
@@ -324,7 +325,8 @@ class PlayQueryView(PermissionRequiredMixin, ExplorerContextMixin, View):
     def post(self, request):
         sql = request.POST.get('sql')
         show = url_get_show(request)
-        query = Query(sql=sql, title="Playground", connection=request.POST.get('connection'))
+        c = request.POST.get('connection', '')
+        query = Query(sql=sql, title="Playground", connection=c)
         passes_blacklist, failing_words = query.passes_blacklist()
         error = MSG_FAILED_BLACKLIST % ', '.join(failing_words) if not passes_blacklist else None
         run_query = not bool(error) if show else False
